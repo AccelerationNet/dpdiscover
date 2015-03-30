@@ -1240,18 +1240,19 @@ function make_fqdn($address) {
 	if(preg_match("/^udp6:(.*)$/", $address, $matches)) {
 		$address = $matches[1];
 	}
-	if(!is_fqdn($address)) {
-		$address = $address.".".$domain_name;
-	}
+    $ip = gethostbyname($address);
+    if ($ip !== $address) { return gethostbyaddr($ip); }
+    $ip = gethostbyname("$address.$domain_name");
+    if ($ip !== "$address.$domain_name") { return gethostbyaddr($ip); }
+	// I guess?
 	return $address;
 }
 
 function get_shorthost($address) {
-	if(!is_fqdn($address)) {
-		return $address;
-	}else{
-		return substr($address, 0, strpos($address, "."));
-	}
+    $fqdn = make_fqdn($address);
+    # get everything but the last two dotted elements;
+    # a.b.c.d -> a.b
+    return join('.', array_slice(explode('.', $fqdn), 0, -2));
 }
 
 function expand_ipv6($ip) {
@@ -1275,9 +1276,15 @@ function get_ip($address) {
 	if(preg_match("/^udp6:(.*)$/", $address, $matches)) {
 		$address = $matches[1];
 	}
+    $ip = gethostbyname($address);
+    if ($ip !== $address) { return $ip; }
+    
 	if(!is_fqdn($address)) {
 		$address = $address.".".$domain_name;
 	}
+    $ip = gethostbyname($address);
+    if ($ip !== $address) { return $ip; }
+        
 	$dns = dns_get_record($address, DNS_A);
 	$ips = array();
 	if($dns === FALSE || !isset($dns[0]['ip'])) {
